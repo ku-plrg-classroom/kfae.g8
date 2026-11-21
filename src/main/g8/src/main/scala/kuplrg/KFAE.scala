@@ -79,8 +79,12 @@ object Parser extends RegexParsers with PackratParsers {
   private val keywords = Set("val", "vcc")
   private val d: String = "0-9"
   private val w: String = "_a-zA-Z"
+  // keyword-like literals must not be followed by identifier characters
+  override implicit def literal(s: String): Parser[String] =
+    if (s.matches(s"[$w][$w$d]*")) regex(s"$s(?![$w$d])".r)
+    else super.literal(s)
   private lazy val num: P[BigInt] = s"-?[$d]+".r ^^ BigInt.apply
-  private lazy val id: P[String] = regex(s"[$w][$w$d]*".r)
+  private lazy val id: P[String] = s"[$w][$w$d]*".r.withFilter(!keywords(_))
   lazy val expr: P[Expr] =
     lazy val e0: P[Expr] = rep1sep(e1, "+") ^^ { _.reduceLeft(Add.apply) }
     lazy val e1: P[Expr] = rep1sep(e2, "*") ^^ { _.reduceLeft(Mul.apply) }
@@ -94,7 +98,7 @@ object Parser extends RegexParsers with PackratParsers {
         ("vcc" ~> id <~ ";") ~ e0 ^^ {
           case x ~ b => Vcc(x, b)
         } |
-        ("val" ~> id <~ "=") ~ e1 ~ (";" ~> e0) ^^ {
+        ("val" ~> id <~ "=") ~ e0 ~ (";" ~> e0) ^^ {
           case x ~ i ~ b => Val(x, i, b)
         } |
         (id <~ "=>") ~ e0 ^^ { case p ~ b => Fun(p, b) } |

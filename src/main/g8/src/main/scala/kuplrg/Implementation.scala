@@ -6,5 +6,5 @@ object Implementation extends Template {
   import Value.*
   import Cont.*
 
-  def reduce(k: Cont, s: Stack): (Cont, Stack) = ???
+  def step(k: Cont, s: Stack): (Cont, Stack) = ???
 }
